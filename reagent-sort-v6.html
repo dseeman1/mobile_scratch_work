@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REAGENT — Flask Sort</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    /* ACS brand anchor: ACS Blue + ACS Gold, on a clean lab-paper light theme */
+    --acs-blue:#003DA5;
+    --acs-blue-deep:#00275c;
+    --acs-gold:#F2A900;
+    --acs-gold-deep:#c78700;
+
+    --bg-0:#f4f2ec;
+    --bg-1:#eae6da;
+    --panel:#ffffff;
+    --ink:#1b2430;
+    --ink-dim:#5c6672;
+    --line:#c9c2af;
+    --line-strong:#003DA5;
+
+    --flame-1:#ff8a2b;
+    --flame-2:#ffd23f;
+    --flame-3:#ff4d2b;
+    --phoenix-1:#ff7a3d;
+    --phoenix-2:#ffcf5c;
+
+    --good:#1c8a4b;
+    --warn:#c23b22;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; min-height:100%;
+    background:
+      radial-gradient(ellipse at 50% -8%, #ffffff 0%, var(--bg-0) 55%),
+      var(--bg-0);
+    color:var(--ink);
+    font-family:'IBM Plex Mono', monospace;
+    overflow-x:hidden;
+  }
+  .grid-bg{
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.06;
+    background-image:
+      linear-gradient(var(--acs-blue) 1px, transparent 1px),
+      linear-gradient(90deg, var(--acs-blue) 1px, transparent 1px);
+    background-size:28px 28px;
+  }
+  #app{
+    position:relative; z-index:1;
+    max-width:560px; margin:0 auto;
+    min-height:100vh;
+    display:flex; flex-direction:column;
+    padding:16px 16px 40px;
+  }
+
+  /* ---------- Header / Signature Phoenix ---------- */
+  header{ text-align:center; margin-bottom:2px; }
+  .eyebrow{
+    font-size:.62rem; letter-spacing:.35em; text-transform:uppercase;
+    color:var(--ink-dim);
+  }
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    letter-spacing:.08em;
+    font-size:1.9rem;
+    margin:2px 0 0;
+    color:var(--ink);
+  }
+  h1 span{ color:var(--acs-blue); }
+
+  .version-tag{
+    display:inline-block;
+    margin-top:6px;
+    font-size:.58rem;
+    letter-spacing:.15em;
+    color:var(--acs-gold-deep);
+    background:#fff3da;
+    border:1px solid var(--acs-gold);
+    border-radius:20px;
+    padding:2px 10px;
+    text-transform:uppercase;
+  }
+
+  .phoenix-stage{
+    position:relative;
+    width:150px; height:150px;
+    margin:6px auto 2px;
+  }
+  .flame-glow{
+    position:absolute; left:50%; bottom:6px; transform:translateX(-50%);
+    width:100px; height:60px;
+    background:radial-gradient(ellipse at 50% 100%, rgba(255,138,43,.45), transparent 70%);
+    filter:blur(4px);
+    animation:glowPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes glowPulse{
+    0%,100%{ opacity:.7; transform:translateX(-50%) scale(1); }
+    50%{ opacity:1; transform:translateX(-50%) scale(1.12); }
+  }
+  svg.phoenix-svg{ position:relative; width:150px; height:150px; overflow:visible; }
+  .flame-flicker{ transform-origin:75px 132px; animation:flicker 1.8s ease-in-out infinite; }
+  .flame-flicker.f2{ animation-duration:2.3s; animation-delay:.2s; }
+  .flame-flicker.f3{ animation-duration:1.5s; animation-delay:.1s; }
+  @keyframes flicker{
+    0%,100%{ transform:scaleY(1) scaleX(1) translateY(0); }
+    30%{ transform:scaleY(1.08) scaleX(.96) translateY(-2px); }
+    60%{ transform:scaleY(.94) scaleX(1.04) translateY(1px); }
+  }
+  .phoenix-body{
+    animation:soar 3.2s ease-in-out infinite;
+    transform-origin:75px 80px;
+  }
+  @keyframes soar{
+    0%,100%{ transform:translateY(0) rotate(0deg); }
+    50%{ transform:translateY(-5px) rotate(-1.5deg); }
+  }
+  .wing{ transform-origin:75px 78px; animation:wingbeat 1.15s ease-in-out infinite; }
+  .wing.right{ animation-delay:.03s; }
+  @keyframes wingbeat{
+    0%,100%{ transform:rotate(0deg); }
+    50%{ transform:rotate(-14deg); }
+  }
+  @keyframes wingbeatR{
+    0%,100%{ transform:rotate(0deg); }
+    50%{ transform:rotate(14deg); }
+  }
+  .wing.right{ animation-name:wingbeatR; }
+  .ember{
+    animation:emberRise 2.6s ease-in infinite;
+    opacity:0;
+  }
+  .ember.e2{ animation-delay:.7s; }
+  .ember.e3{ animation-delay:1.4s; }
+  .ember.e4{ animation-delay:2s; }
+  @keyframes emberRise{
+    0%{ opacity:0; transform:translateY(0) translateX(0); }
+    10%{ opacity:1; }
+    90%{ opacity:.4; }
+    100%{ opacity:0; transform:translateY(-70px) translateX(6px); }
+  }
+
+  /* ---------- HUD ---------- */
+  .hud{
+    display:flex; justify-content:space-between; align-items:center;
+    margin:10px 0 8px;
+    font-size:.66rem; letter-spacing:.08em; color:var(--ink-dim);
+    text-transform:uppercase;
+  }
+  .hud .stat{ text-align:center; }
+  .hud b{
+    display:block; color:var(--acs-blue); font-size:1rem;
+    font-family:'Space Grotesk',sans-serif; letter-spacing:0;
+  }
+
+  .controls{
+    display:flex; gap:8px; justify-content:center; margin:6px 0 18px; flex-wrap:wrap;
+  }
+  button.ctl{
+    font-family:'IBM Plex Mono', monospace;
+    letter-spacing:.05em;
+    font-size:.68rem;
+    text-transform:uppercase;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--acs-blue);
+    padding:9px 14px;
+    border-radius:3px;
+    cursor:pointer;
+    transition:transform .15s, border-color .15s, color .15s, box-shadow .15s;
+    box-shadow:0 1px 0 rgba(0,0,0,.04);
+  }
+  button.ctl:hover{ border-color:var(--acs-blue); box-shadow:0 2px 6px rgba(0,61,165,.12); }
+  button.ctl:active{ transform:translateY(2px); }
+  button.ctl:disabled{ opacity:.35; cursor:default; }
+  button.ctl.primary{
+    background:var(--acs-blue); color:#fff; border-color:var(--acs-blue-deep);
+    font-weight:600;
+  }
+  button.ctl.primary:hover{ box-shadow:0 3px 10px rgba(0,61,165,.3); }
+
+  /* ---------- Board / Real Glassware ---------- */
+  .board{
+    flex:1;
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:20px 8px;
+    justify-items:center;
+    align-content:start;
+    padding:8px 2px 10px;
+  }
+  @media (min-width:440px){
+    .board{ grid-template-columns:repeat(5, 1fr); }
+  }
+  @media (min-width:540px){
+    .board{ grid-template-columns:repeat(6, 1fr); }
+  }
+
+  .vial-wrap{
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:flex-end;
+    cursor:pointer; user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    align-self:end;
+    min-height:190px;
+  }
+
+  /* ---------- Glassware: shared vessel scaffold ---------- */
+  .flask{
+    position:relative;
+    width:var(--vw, 38px);
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .flask-lip{
+    width:calc(var(--vw, 38px) * 0.78);
+    height:8px;
+    background:linear-gradient(90deg, rgba(0,0,0,.02), rgba(255,255,255,.55) 40%, rgba(0,0,0,.03));
+    border:1.5px solid var(--line);
+    border-bottom:none;
+    border-radius:4px 4px 0 0;
+  }
+  .flask-body{
+    position:relative;
+    width:var(--vw, 38px);
+    height:var(--vh, 138px);
+    border:1.5px solid var(--line);
+    border-top:none;
+    border-radius:2px 2px 10px 10px;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,.05) 0%, rgba(255,255,255,.65) 16%, rgba(255,255,255,.05) 30%, transparent 55%),
+      linear-gradient(160deg, rgba(255,255,255,.5), rgba(230,230,225,.35));
+    overflow:hidden;
+    box-shadow:inset 0 0 10px rgba(0,0,0,.06), 0 4px 10px rgba(0,0,0,.08);
+    display:flex; flex-direction:column-reverse;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  /* foot: a stable trapezoid base, WIDE at the bottom (ground contact), narrow where it meets the tube */
+  .flask-base{
+    width:calc(var(--vw, 38px) + 16px);
+    height:9px;
+    background:linear-gradient(180deg, #cfc9b8, #a89f89);
+    border:1.5px solid var(--line);
+    border-top:none;
+    clip-path:polygon(22% 0%, 78% 0%, 100% 100%, 0% 100%);
+    margin-top:-1px;
+  }
+  /* graduation ticks etched on the glass */
+  .flask-body .tick{
+    position:absolute; right:2px; height:1px;
+    background:rgba(0,0,0,.22);
+    width:8px;
+  }
+  .flask-body .tick.major{ width:13px; background:rgba(0,0,0,.32); }
+
+  /* ---------- Shape variants (cosmetic outline via clip-path; segments still fill rectangularly beneath) ---------- */
+  .flask.shape-erlenmeyer .flask-body{
+    clip-path:polygon(32% 0%, 68% 0%, 100% 100%, 0% 100%);
+    border-radius:2px 2px 14px 14px;
+  }
+  .flask.shape-erlenmeyer .flask-lip{ width:calc(var(--vw, 38px) * 0.5); }
+  .flask.shape-erlenmeyer .flask-base{
+    width:calc(var(--vw, 38px) + 6px);
+    clip-path:polygon(6% 0%, 94% 0%, 100% 100%, 0% 100%);
+  }
+
+  .flask.shape-round .flask-body{
+    clip-path:polygon(30% 0%, 70% 0%, 100% 55%, 92% 82%, 70% 97%, 30% 97%, 8% 82%, 0% 55%);
+    border-radius:50%;
+  }
+  .flask.shape-round .flask-lip{ width:calc(var(--vw, 38px) * 0.42); }
+  .flask.shape-round .flask-base{ display:none; }
+
+  .flask.shape-beaker .flask-body{
+    border-radius:1px 1px 6px 6px;
+  }
+  .flask.shape-beaker .flask-lip{
+    width:calc(var(--vw, 38px) + 4px);
+    position:relative;
+  }
+  .flask.shape-beaker .flask-lip::after{
+    content:"";
+    position:absolute; top:-3px; right:-5px;
+    width:8px; height:6px;
+    background:inherit;
+    border:1.5px solid var(--line);
+    border-left:none; border-bottom:none;
+    clip-path:polygon(0 100%, 100% 0%, 100% 100%);
+  }
+  .flask.shape-beaker .flask-base{
+    width:calc(var(--vw, 38px) + 10px);
+    clip-path:polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);
+  }
+
+  .flask.shape-test .flask-body{
+    clip-path:polygon(0% 0%, 100% 0%, 100% 86%, 50% 100%, 0% 86%);
+    border-radius:2px 2px 0 0;
+  }
+  .flask.shape-test .flask-lip{ width:calc(var(--vw, 38px) * 0.9); }
+  .flask.shape-test .flask-base{ display:none; }
+
+  .vial-wrap.selected .flask-body{
+    transform:translateY(-12px);
+    border-color:var(--acs-blue);
+    box-shadow:inset 0 0 10px rgba(0,0,0,.06), 0 0 0 3px rgba(0,61,165,.18), 0 10px 18px rgba(0,0,0,.14);
+  }
+  .vial-wrap.selected .flask-lip{ transform:translateY(-12px); border-color:var(--acs-blue); }
+  .vial-wrap.hint .flask-body{
+    border-color:var(--acs-gold);
+    box-shadow:0 0 0 3px rgba(242,169,0,.28), inset 0 0 10px rgba(0,0,0,.06);
+  }
+
+  .seg{
+    width:100%; flex-shrink:0; position:relative;
+    transition:height .28s cubic-bezier(.4,0,.2,1);
+  }
+  .seg::after{
+    content:""; position:absolute; top:0; left:0; right:0; height:3px;
+    background:rgba(255,255,255,.35);
+  }
+  .seg:last-child::after{ display:none; }
+  .seg::before{
+    content:""; position:absolute; inset:0;
+    background-image:radial-gradient(circle at 30% 80%, rgba(255,255,255,.45) 1px, transparent 1.5px),
+                      radial-gradient(circle at 70% 40%, rgba(255,255,255,.3) 1px, transparent 1.5px);
+    opacity:.5;
+  }
+
+  /* ---------- SEALED / FULL mechanic ---------- */
+  .vial-wrap.solved{ cursor:default; }
+  .vial-wrap.solved .flask-body{
+    border-color:var(--acs-gold-deep);
+    box-shadow:0 0 0 3px rgba(242,169,0,.2), inset 0 0 10px rgba(0,0,0,.06), 0 0 16px rgba(242,169,0,.35);
+  }
+  .stopper{
+    width:20px; height:0px;
+    background:linear-gradient(180deg,#e7c25c,var(--acs-gold-deep));
+    border:1px solid #a67200;
+    border-radius:3px 3px 1px 1px;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);
+    opacity:0;
+    transform:translateY(-6px) scaleY(.2);
+    transition:none;
+  }
+  .vial-wrap.solved .stopper{
+    animation:sealDrop .45s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  @keyframes sealDrop{
+    0%{ opacity:0; height:0px; transform:translateY(-14px) scaleY(.2); }
+    60%{ opacity:1; height:12px; transform:translateY(2px) scaleY(1.15); }
+    100%{ opacity:1; height:12px; transform:translateY(0) scaleY(1); }
+  }
+  .seal-badge{
+    position:absolute; top:-9px; right:-6px;
+    width:16px; height:16px; border-radius:50%;
+    background:var(--acs-gold);
+    color:#fff; font-size:.55rem; line-height:16px; text-align:center;
+    box-shadow:0 1px 4px rgba(0,0,0,.3);
+    opacity:0; transform:scale(0);
+  }
+  .vial-wrap.solved .seal-badge{
+    animation:badgePop .4s ease .35s forwards;
+  }
+  @keyframes badgePop{
+    0%{ opacity:0; transform:scale(0); }
+    70%{ opacity:1; transform:scale(1.25); }
+    100%{ opacity:1; transform:scale(1); }
+  }
+  .vial-wrap.just-solved .flask-body{
+    animation:sealGlowPulse .7s ease-out;
+  }
+  @keyframes sealGlowPulse{
+    0%{ box-shadow:0 0 0 0 rgba(242,169,0,.6), inset 0 0 10px rgba(0,0,0,.06); }
+    60%{ box-shadow:0 0 0 10px rgba(242,169,0,0), inset 0 0 10px rgba(0,0,0,.06); }
+    100%{ box-shadow:0 0 0 3px rgba(242,169,0,.2), inset 0 0 10px rgba(0,0,0,.06), 0 0 16px rgba(242,169,0,.35); }
+  }
+
+  .vial-label{
+    margin-top:7px; font-size:.6rem; color:var(--ink-dim); letter-spacing:.1em;
+  }
+  .vial-label b{ color:var(--acs-blue); }
+
+  .toast{
+    position:fixed; left:50%; top:16px; transform:translateX(-50%) translateY(-30px);
+    background:var(--panel); border:1px solid var(--line);
+    color:var(--acs-blue); font-size:.72rem; letter-spacing:.05em;
+    padding:10px 16px; border-radius:4px; text-transform:uppercase;
+    opacity:0; transition:opacity .3s, transform .3s;
+    z-index:50; pointer-events:none;
+    box-shadow:0 6px 20px rgba(0,0,0,.12);
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .win-overlay{
+    position:fixed; inset:0; z-index:60;
+    background:rgba(20,20,15,.5);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .35s;
+  }
+  .win-overlay.show{ opacity:1; pointer-events:auto; }
+  .win-card{
+    background:var(--panel); border:1px solid var(--line);
+    border-top:4px solid var(--acs-gold);
+    border-radius:8px; padding:30px 26px; text-align:center;
+    width:82%; max-width:340px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
+    transform:scale(.9); transition:transform .35s;
+  }
+  .win-overlay.show .win-card{ transform:scale(1); }
+  .win-card h2{
+    font-family:'Space Grotesk',sans-serif; color:var(--acs-blue);
+    letter-spacing:.06em; margin:8px 0 6px; font-size:1.25rem; text-transform:uppercase;
+  }
+  .win-card p{ color:var(--ink-dim); margin:0 0 20px; font-size:.78rem; }
+
+  .hazard-diamond{
+    display:flex; flex-direction:column; align-items:center;
+    margin:10px auto 0;
+  }
+  .hazard-label{
+    margin-top:4px; font-size:.6rem; letter-spacing:.15em; color:var(--ink-dim);
+    text-transform:uppercase;
+  }
+
+  footer.tagline{
+    text-align:center; margin-top:auto; padding-top:20px;
+    font-size:.6rem; letter-spacing:.28em; color:rgba(92,102,114,.55);
+    text-transform:uppercase;
+  }
+  footer.tagline .v{
+    display:block; margin-top:4px; letter-spacing:.15em; color:var(--acs-gold-deep);
+  }
+
+  .sound-toggle{
+    position:fixed; top:14px; right:14px; z-index:40;
+    width:34px; height:34px; border-radius:50%;
+    background:var(--panel); border:1px solid var(--line);
+    color:var(--acs-blue); font-size:.85rem;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+  }
+  .sound-toggle.off{ color:#a3a3a3; }
+
+  /* ---------- Pour animation ---------- */
+  .vial-wrap.pour-from .flask{
+    animation:tiltPour .55s ease-in-out;
+  }
+  @keyframes tiltPour{
+    0%{ transform:rotate(0deg) translateY(0); }
+    35%{ transform:rotate(var(--tilt,-28deg)) translateY(-10px); }
+    70%{ transform:rotate(var(--tilt,-28deg)) translateY(-10px); }
+    100%{ transform:rotate(0deg) translateY(0); }
+  }
+  .vial-wrap.pour-to .flask-body{
+    animation:receiveBump .55s ease-in-out;
+  }
+  @keyframes receiveBump{
+    0%,55%{ transform:translateY(0); }
+    68%{ transform:translateY(3px); }
+    100%{ transform:translateY(0); }
+  }
+  /* ---------- Pipette transfer animation (replaces flying droplets) ---------- */
+  .pipette-layer{
+    position:fixed; inset:0; z-index:36; pointer-events:none;
+  }
+  .pipette-rig{
+    position:absolute; transform-origin:top center;
+    opacity:0;
+  }
+  .pipette-rig.show{
+    animation:pipetteIn .18s ease-out forwards;
+  }
+  .pipette-rig.leaving{
+    animation:pipetteOut .22s ease-in forwards;
+  }
+  @keyframes pipetteIn{
+    0%{ opacity:0; transform:translateY(-8px) scale(.85); }
+    100%{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  @keyframes pipetteOut{
+    0%{ opacity:1; transform:translateY(0) scale(1); }
+    100%{ opacity:0; transform:translateY(-6px) scale(.9); }
+  }
+  .pipette-bulb{
+    transform-origin:center top;
+  }
+  .pipette-bulb.squeeze{
+    animation:bulbSqueeze .5s ease-in-out;
+  }
+  @keyframes bulbSqueeze{
+    0%,100%{ transform:scaleY(1); }
+    35%{ transform:scaleY(.62); }
+    55%{ transform:scaleY(1.08); }
+    75%{ transform:scaleY(.85); }
+  }
+  .stream-svg{
+    position:absolute; inset:0; overflow:visible;
+  }
+  .stream-path{
+    fill:none;
+    stroke-linecap:round;
+    opacity:0;
+  }
+  .stream-path.flow{
+    animation:streamFlow .5s ease-in-out forwards;
+  }
+  @keyframes streamFlow{
+    0%{ opacity:0; stroke-dasharray:0 200; }
+    18%{ opacity:.9; }
+    65%{ opacity:.85; stroke-dasharray:200 0; }
+    100%{ opacity:0; stroke-dasharray:200 0; }
+  }
+  .ripple{
+    position:absolute; border-radius:50%;
+    border:2px solid currentColor;
+    opacity:0;
+    animation:rippleOut .45s ease-out forwards;
+  }
+  @keyframes rippleOut{
+    0%{ opacity:.8; width:4px; height:4px; margin:-2px 0 0 -2px; }
+    100%{ opacity:0; width:22px; height:22px; margin:-11px 0 0 -11px; }
+  }
+
+  /* ---------- Rotovap boss apparatus ---------- */
+  .vial-wrap.is-rotovap{ position:relative; }
+  .rotovap-rig{
+    position:relative;
+    width:74px; height:60px;
+    margin-bottom:0;
+    pointer-events:none;
+  }
+  .boss-tag{
+    position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+    font-size:.52rem; letter-spacing:.12em; color:#fff;
+    background:var(--acs-gold-deep);
+    padding:2px 7px; border-radius:10px; white-space:nowrap;
+    box-shadow:0 2px 6px rgba(0,0,0,.25);
+  }
+  .condenser-coil{
+    animation:coilShimmer 3s ease-in-out infinite;
+  }
+  @keyframes coilShimmer{
+    0%,100%{ opacity:.85; }
+    50%{ opacity:1; }
+  }
+  .receiving-flask{ transition:filter .3s ease; }
+  .receiving-flask.collected{
+    animation:receiveGlow 1s ease-out;
+  }
+  @keyframes receiveGlow{
+    0%{ filter:drop-shadow(0 0 0 rgba(242,169,0,0)); }
+    40%{ filter:drop-shadow(0 0 6px rgba(242,169,0,.9)); }
+    100%{ filter:drop-shadow(0 0 0 rgba(242,169,0,0)); }
+  }
+  /* the boiling flask sits at a real rotovap working angle and slowly turns */
+  .vial-wrap.is-rotovap .flask{
+    animation:rotoTurn 4.5s ease-in-out infinite;
+    transform-origin:50% 90%;
+  }
+  @keyframes rotoTurn{
+    0%,100%{ transform:rotate(21deg); }
+    50%{ transform:rotate(27deg); }
+  }
+  /* heating water bath glow beneath the flask */
+  .vial-wrap.is-rotovap .flask-base{ position:relative; }
+  .vial-wrap.is-rotovap .flask-base::after{
+    content:"";
+    position:absolute; left:50%; bottom:-6px; transform:translateX(-50%);
+    width:calc(var(--vw, 40px) * 1.9); height:14px;
+    background:radial-gradient(ellipse at center, rgba(0,131,143,.35), transparent 70%);
+    border-radius:50%;
+    animation:bathShimmer 2.6s ease-in-out infinite;
+  }
+  @keyframes bathShimmer{
+    0%,100%{ opacity:.6; transform:translateX(-50%) scale(1); }
+    50%{ opacity:1; transform:translateX(-50%) scale(1.08); }
+  }
+  .drip{
+    animation:coilDrip 2.4s ease-in infinite;
+    opacity:0;
+  }
+  .drip.d2{ animation-delay:1.2s; }
+  @keyframes coilDrip{
+    0%{ opacity:0; transform:translateY(0); }
+    10%{ opacity:1; }
+    80%{ opacity:.6; }
+    100%{ opacity:0; transform:translateY(14px); }
+  }
+
+  /* ---------- Distillation steam burst ---------- */
+  .steam-layer{
+    position:fixed; z-index:37; pointer-events:none;
+  }
+  .steam-puff{
+    position:absolute; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,255,255,.9), rgba(255,255,255,0) 70%);
+    animation:steamRise 1s ease-out forwards;
+    opacity:0;
+  }
+  @keyframes steamRise{
+    0%{ opacity:0; transform:translate(0,0) scale(.4); }
+    15%{ opacity:.85; }
+    100%{ opacity:0; transform:translate(var(--sx,0px), -46px) scale(1.4); }
+  }
+
+  /* ---------- Meniscus ---------- */
+  .meniscus-wrap{
+    position:absolute; left:0; right:0; height:9px;
+    pointer-events:none; z-index:3;
+    transition:top .28s cubic-bezier(.4,0,.2,1);
+  }
+  .meniscus-wrap svg{ width:100%; height:100%; display:block; }
+
+  /* ---------- Win embers burst ---------- */
+  .burst-layer{
+    position:fixed; inset:0; z-index:65; pointer-events:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .burst-particle{
+    position:absolute; width:5px; height:5px; border-radius:50%;
+    top:50%; left:50%;
+    animation:burstFly 1.1s cubic-bezier(.15,.6,.4,1) forwards;
+    opacity:0;
+  }
+  @keyframes burstFly{
+    0%{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+    100%{ opacity:0; transform:translate(calc(-50% + var(--bx)), calc(-50% + var(--by))) scale(.3); }
+  }
+
+  .shake{ animation:shakeX .3s ease; }
+  @keyframes shakeX{
+    0%,100%{ transform:translateX(0); }
+    25%{ transform:translateX(-5px); }
+    75%{ transform:translateX(5px); }
+  }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div id="app">
+  <header>
+    <div class="eyebrow">Fig. 01 — Transmutation Apparatus</div>
+    <h1>RE<span>AGENT</span></h1>
+    <div class="version-tag">v6.0</div>
+
+    <div class="phoenix-stage" aria-hidden="true">
+      <div class="flame-glow"></div>
+      <svg class="phoenix-svg" viewBox="0 0 150 150">
+        <!-- Flame -->
+        <g>
+          <path class="flame-flicker" d="M75 148 C 58 130, 55 112, 66 98 C 60 108, 64 116, 72 118 C 66 104, 70 90, 82 82 C 76 96, 80 106, 90 110 C 96 100, 92 88, 96 78 C 106 96, 108 116, 96 132 C 100 122, 98 114, 92 110 C 94 122, 88 134, 75 148 Z"
+                fill="var(--flame-1)" opacity="0.9"/>
+          <path class="flame-flicker f2" d="M75 145 C 63 130, 62 116, 70 105 C 66 112, 69 118, 75 120 C 71 108, 74 98, 83 92 C 79 102, 82 110, 89 113 C 93 105, 90 96, 93 89 C 100 102, 101 118, 92 130 C 95 122, 93 116, 89 113 C 91 122, 86 132, 75 145 Z"
+                fill="var(--flame-2)" opacity="0.95"/>
+          <path class="flame-flicker f3" d="M75 140 C 68 130, 68 121, 73 114 C 71 119, 73 123, 76 124 C 74 116, 76 109, 81 105 C 79 111, 81 116, 85 118 C 87 113, 86 107, 88 103 C 92 112, 92 122, 86 129 C 88 124, 87 120, 85 118 C 86 123, 82 130, 75 140 Z"
+                fill="var(--flame-3)" opacity="0.9"/>
+        </g>
+
+        <!-- Embers -->
+        <circle class="ember e1" cx="60" cy="128" r="1.6" fill="var(--phoenix-2)"/>
+        <circle class="ember e2" cx="88" cy="132" r="1.3" fill="var(--phoenix-1)"/>
+        <circle class="ember e3" cx="70" cy="126" r="1.1" fill="var(--phoenix-2)"/>
+        <circle class="ember e4" cx="80" cy="130" r="1.4" fill="var(--phoenix-1)"/>
+
+        <!-- Phoenix -->
+        <g class="phoenix-body">
+          <!-- Tail feathers -->
+          <path d="M75 95 C 68 108, 62 118, 58 132 C 65 122, 71 114, 75 104 Z" fill="var(--phoenix-1)"/>
+          <path d="M75 95 C 79 110, 84 120, 90 133 C 82 123, 78 114, 75 104 Z" fill="var(--phoenix-2)"/>
+          <path d="M75 96 C 74 112, 74 122, 75 135 C 77 122, 77 112, 75 96 Z" fill="var(--flame-2)"/>
+
+          <!-- Left wing -->
+          <g class="wing left">
+            <path d="M75 78 C 55 74, 38 66, 26 50 C 40 58, 50 62, 62 70 C 48 60, 40 50, 34 36 C 48 48, 58 56, 68 66 C 66 76, 70 80, 75 82 Z"
+                  fill="var(--phoenix-1)"/>
+            <path d="M68 66 C 56 56, 48 46, 44 32 C 54 42, 62 50, 70 60 Z" fill="var(--phoenix-2)"/>
+          </g>
+
+          <!-- Right wing -->
+          <g class="wing right">
+            <path d="M75 78 C 95 74, 112 66, 124 50 C 110 58, 100 62, 88 70 C 102 60, 110 50, 116 36 C 102 48, 92 56, 82 66 C 84 76, 80 80, 75 82 Z"
+                  fill="var(--phoenix-1)"/>
+            <path d="M82 66 C 94 56, 102 46, 106 32 C 96 42, 88 50, 80 60 Z" fill="var(--phoenix-2)"/>
+          </g>
+
+          <!-- Body -->
+          <ellipse cx="75" cy="88" rx="9" ry="16" fill="var(--flame-2)"/>
+          <ellipse cx="75" cy="86" rx="7" ry="12" fill="var(--phoenix-2)"/>
+
+          <!-- Head + beak -->
+          <circle cx="75" cy="68" r="7" fill="var(--phoenix-2)"/>
+          <path d="M75 65 L 84 67 L 75 71 Z" fill="var(--flame-3)"/>
+          <circle cx="72.5" cy="66.5" r="1.1" fill="#1a0e05"/>
+
+          <!-- Crest -->
+          <path d="M73 61 C 71 54, 74 49, 78 45 C 75 51, 76 56, 78 60 Z" fill="var(--flame-3)"/>
+          <path d="M76 61 C 76 53, 80 47, 85 44 C 80 51, 79 56, 80 61 Z" fill="var(--flame-1)"/>
+        </g>
+      </svg>
+    </div>
+  </header>
+
+  <div class="hazard-diamond" id="hazardDiamond" title="Progress">
+    <svg width="76" height="76" viewBox="0 0 100 100">
+      <!-- NFPA 704: red=flammability (top), blue=health (left),
+           yellow=reactivity (right), white=special (bottom) -->
+      <polygon points="50,8 72,30 50,52 28,30" fill="#c23b22" stroke="#222" stroke-width="2"/>
+      <polygon points="8,50 30,28 52,50 30,72"  fill="#003DA5" stroke="#222" stroke-width="2"/>
+      <polygon points="92,50 70,28 48,50 70,72" fill="#F2A900" stroke="#222" stroke-width="2"/>
+      <polygon points="50,92 28,70 50,48 72,70" fill="#ffffff" stroke="#222" stroke-width="2"/>
+      <text id="hz-flame-n"   x="50" y="37" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="19" fill="#fff">0</text>
+      <text id="hz-health-n"  x="30" y="57" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="19" fill="#fff">0</text>
+      <text id="hz-react-n"   x="70" y="57" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="19" fill="#1b2430">0</text>
+      <text id="hz-special-n" x="50" y="78" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="15" fill="#1b2430"></text>
+    </svg>
+    <div class="hazard-label">Batch <span id="hazardLevelLabel">1</span></div>
+  </div>
+
+  <div class="hud">
+    <div class="stat">Batch<b id="levelNum">1</b></div>
+    <div class="stat">Pours<b id="moveCount">0</b></div>
+    <div class="stat">Record<b id="bestMoves">–</b></div>
+    <div class="stat">Banked<b id="distilledCount">0</b></div>
+  </div>
+
+  <div class="controls">
+    <button class="ctl" id="undoBtn">Undo</button>
+    <button class="ctl" id="hintBtn">Catalyze</button>
+    <button class="ctl" id="resetBtn">Reset</button>
+    <button class="ctl primary" id="nextBtn">Next Batch ▶</button>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <footer class="tagline">From ash, purity<span class="v">Reagent v6.0</span></footer>
+</div>
+
+<div class="sound-toggle" id="soundToggle">♪</div>
+<div class="pipette-layer" id="pipetteLayer"></div>
+<div class="steam-layer" id="steamLayer"></div>
+<div class="toast" id="toast"></div>
+<div class="win-overlay" id="winOverlay">
+  <div class="win-card">
+    <h2>Compound Stable</h2>
+    <p id="winText">All reagents isolated.</p>
+    <button class="ctl primary" id="winNext">Next Batch ▶</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const APP_VERSION = 'v6.0';
+
+  // ---------- Audio engine (Web Audio synth, no assets) ----------
+  let actx = null;
+  let soundOn = true;
+  function ac(){
+    if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if(actx.state==='suspended') actx.resume();
+    return actx;
+  }
+  function envGain(ctx, t0, peak, dur){
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(peak, t0+.012);
+    g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+    return g;
+  }
+  function playClick(){
+    if(!soundOn) return;
+    const ctx = ac(), t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type='sine'; osc.frequency.setValueAtTime(720, t0);
+    osc.frequency.exponentialRampToValueAtTime(420, t0+.08);
+    const g = envGain(ctx, t0, .18, .12);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t0); osc.stop(t0+.13);
+  }
+  function playPour(amount){
+    if(!soundOn) return;
+    const ctx = ac(), t0 = ctx.currentTime;
+    const n = Math.max(1, Math.min(amount,4));
+    for(let i=0;i<n;i++){
+      const start = t0 + i*.09;
+      const bufSize = ctx.sampleRate*.12;
+      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for(let s=0;s<bufSize;s++){ data[s] = (Math.random()*2-1)*Math.pow(1-s/bufSize,2); }
+      const noise = ctx.createBufferSource(); noise.buffer = buf;
+      const bp = ctx.createBiquadFilter();
+      bp.type='bandpass'; bp.frequency.value = 500+Math.random()*300; bp.Q.value=2.2;
+      const g = envGain(ctx, start, .22, .16);
+      noise.connect(bp).connect(g).connect(ctx.destination);
+      noise.start(start); noise.stop(start+.16);
+
+      const osc = ctx.createOscillator();
+      osc.type='sine';
+      osc.frequency.setValueAtTime(380+Math.random()*80, start);
+      osc.frequency.exponentialRampToValueAtTime(180, start+.15);
+      const g2 = envGain(ctx, start, .1, .18);
+      osc.connect(g2).connect(ctx.destination);
+      osc.start(start); osc.stop(start+.18);
+    }
+  }
+  function playError(){
+    if(!soundOn) return;
+    const ctx = ac(), t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type='square'; osc.frequency.setValueAtTime(160, t0);
+    osc.frequency.linearRampToValueAtTime(90, t0+.18);
+    const g = envGain(ctx, t0, .09, .22);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t0); osc.stop(t0+.22);
+  }
+  function playUndo(){
+    if(!soundOn) return;
+    const ctx = ac(), t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type='triangle'; osc.frequency.setValueAtTime(300, t0);
+    osc.frequency.exponentialRampToValueAtTime(500, t0+.12);
+    const g = envGain(ctx, t0, .15, .16);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t0); osc.stop(t0+.16);
+  }
+  function playWin(){
+    if(!soundOn) return;
+    const ctx = ac(), t0 = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((f,i)=>{
+      const start = t0 + i*.11;
+      const osc = ctx.createOscillator();
+      osc.type='sine'; osc.frequency.setValueAtTime(f, start);
+      const g = envGain(ctx, start, .2, .4);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(start); osc.stop(start+.4);
+    });
+  }
+  function playHint(){
+    if(!soundOn) return;
+    const ctx = ac(), t0 = ctx.currentTime;
+    [660, 880].forEach((f,i)=>{
+      const start = t0+i*.06;
+      const osc = ctx.createOscillator();
+      osc.type='sine'; osc.frequency.setValueAtTime(f, start);
+      const g = envGain(ctx, start, .12, .18);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(start); osc.stop(start+.18);
+    });
+  }
+  function playSeal(){
+    if(!soundOn) return;
+    const ctx = ac(), t0 = ctx.currentTime;
+    // a little "cork snap" — short click + low thud
+    const osc = ctx.createOscillator();
+    osc.type='triangle'; osc.frequency.setValueAtTime(900, t0);
+    osc.frequency.exponentialRampToValueAtTime(200, t0+.08);
+    const g = envGain(ctx, t0, .22, .1);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t0); osc.stop(t0+.1);
+
+    const thud = ctx.createOscillator();
+    thud.type='sine'; thud.frequency.setValueAtTime(140, t0+.03);
+    const g2 = envGain(ctx, t0+.03, .18, .18);
+    thud.connect(g2).connect(ctx.destination);
+    thud.start(t0+.03); thud.stop(t0+.21);
+  }
+  function playDistill(){
+    if(!soundOn) return;
+    const ctx = ac(), t0 = ctx.currentTime;
+    // steam hiss
+    const bufSize = ctx.sampleRate*.5;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let s=0;s<bufSize;s++){ data[s] = (Math.random()*2-1)*Math.pow(1-s/bufSize,1.5)*.5; }
+    const noise = ctx.createBufferSource(); noise.buffer = buf;
+    const hp = ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=2200;
+    const g = envGain(ctx, t0, .16, .5);
+    noise.connect(hp).connect(g).connect(ctx.destination);
+    noise.start(t0); noise.stop(t0+.5);
+    // banked chime
+    [880, 1174.7].forEach((f,i)=>{
+      const start = t0+.15+i*.09;
+      const osc = ctx.createOscillator();
+      osc.type='sine'; osc.frequency.setValueAtTime(f, start);
+      const gg = envGain(ctx, start, .15, .3);
+      osc.connect(gg).connect(ctx.destination);
+      osc.start(start); osc.stop(start+.3);
+    });
+  }
+
+  const soundToggle = document.getElementById('soundToggle');
+  soundToggle.addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    soundToggle.classList.toggle('off', !soundOn);
+    soundToggle.textContent = soundOn ? '♪' : '✕';
+    if(soundOn){ ac(); playClick(); }
+  });
+
+  // ---------- Visual FX: pipette transfer (replaces flying droplets) ----------
+  const pipetteLayer = document.getElementById('pipetteLayer');
+  function spawnTransfer(fromEl, toEl, color, amount){
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+    const srcX = fromRect.left + fromRect.width/2;
+    const srcY = fromRect.top - 6; // just above the source vessel's mouth
+    const dstX = toRect.left + toRect.width/2;
+    const dstY = toRect.top - 2; // just above target vessel's mouth
+
+    // Pipette rig: bulb + tube, positioned above the source, then slides to the target
+    const rig = document.createElement('div');
+    rig.className = 'pipette-rig show';
+    rig.style.left = srcX+'px';
+    rig.style.top = srcY+'px';
+    rig.style.transition = 'left .3s ease-in-out, top .3s ease-in-out';
+    rig.innerHTML = `
+      <svg width="14" height="30" viewBox="0 0 14 30" style="overflow:visible;transform:translate(-7px,-28px)">
+        <ellipse class="pipette-bulb" cx="7" cy="7" rx="6" ry="7" fill="#e7e2d3" stroke="#8a8370" stroke-width="1"/>
+        <rect x="5.5" y="12" width="3" height="16" rx="1.4" fill="#d9d4c4" stroke="#8a8370" stroke-width="0.6"/>
+        <rect x="6" y="27" width="2" height="3" fill="${color}" opacity="0.85"/>
+      </svg>`;
+    pipetteLayer.appendChild(rig);
+    const bulb = rig.querySelector('.pipette-bulb');
+
+    // SVG stream layer for the arcing liquid path
+    const svgWrap = document.createElement('div');
+    svgWrap.className = 'stream-svg';
+    svgWrap.style.position = 'fixed';
+    svgWrap.style.inset = '0';
+    svgWrap.style.zIndex = 36;
+    svgWrap.style.pointerEvents = 'none';
+    const midX = (srcX+dstX)/2;
+    const midY = Math.min(srcY, dstY) - 22;
+    const strokeW = 3 + Math.min(amount, 4);
+    svgWrap.innerHTML = `<svg width="100%" height="100%" style="position:absolute;inset:0;overflow:visible">
+        <path class="stream-path flow" d="M ${srcX} ${srcY} Q ${midX} ${midY} ${dstX} ${dstY}"
+          stroke="${color}" stroke-width="${strokeW}"/>
+      </svg>`;
+    pipetteLayer.appendChild(svgWrap);
+
+    // move pipette rig over the target after a beat, then squeeze
+    requestAnimationFrame(()=>{
+      setTimeout(()=>{
+        rig.style.left = dstX+'px';
+        rig.style.top = dstY+'px';
+      }, 20);
+      setTimeout(()=>{
+        bulb.classList.add('squeeze');
+      }, 160);
+    });
+
+    // ripple at destination on arrival
+    setTimeout(()=>{
+      const ripple = document.createElement('div');
+      ripple.className = 'ripple';
+      ripple.style.color = color;
+      ripple.style.left = dstX+'px';
+      ripple.style.top = dstY+'px';
+      pipetteLayer.appendChild(ripple);
+      setTimeout(()=>ripple.remove(), 500);
+    }, 340);
+
+    setTimeout(()=>{
+      rig.classList.add('leaving');
+      setTimeout(()=>rig.remove(), 250);
+    }, 420);
+    setTimeout(()=>svgWrap.remove(), 560);
+  }
+
+  const burstColors = ['#F2A900','#003DA5','#ff8a2b','#1c8a4b'];
+
+  const steamLayer = document.getElementById('steamLayer');
+  function spawnSteam(vialEl){
+    const rect = vialEl.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height*0.35;
+    for(let i=0;i<9;i++){
+      const p = document.createElement('div');
+      p.className = 'steam-puff';
+      const size = 8+Math.random()*10;
+      p.style.width = size+'px';
+      p.style.height = size+'px';
+      p.style.left = (cx-size/2+(Math.random()*20-10))+'px';
+      p.style.top = (cy-size/2)+'px';
+      p.style.setProperty('--sx', (Math.random()*24-12)+'px');
+      p.style.animationDelay = (Math.random()*.3)+'s';
+      steamLayer.appendChild(p);
+      setTimeout(()=>p.remove(), 1300);
+    }
+  }
+  function spawnBurst(){
+    const layer = document.createElement('div');
+    layer.className = 'burst-layer';
+    for(let i=0;i<28;i++){
+      const p = document.createElement('div');
+      p.className = 'burst-particle';
+      const angle = Math.random()*Math.PI*2;
+      const dist = 80+Math.random()*160;
+      p.style.setProperty('--bx', Math.cos(angle)*dist+'px');
+      p.style.setProperty('--by', Math.sin(angle)*dist+'px');
+      p.style.background = burstColors[i%burstColors.length];
+      p.style.animationDelay = (Math.random()*.15)+'s';
+      layer.appendChild(p);
+    }
+    document.body.appendChild(layer);
+    setTimeout(()=>layer.remove(), 1400);
+  }
+
+  // ACS-anchored reagent palette: ACS Blue + ACS Gold as the brand pair,
+  // remaining hues chosen for maximum distinguishability against light glass.
+  const PALETTE = [
+    '#003DA5', // ACS Blue
+    '#F2A900', // ACS Gold
+    '#1c8a4b', // reaction green
+    '#c23b22', // reaction red
+    '#5c2d91', // reaction violet
+    '#00838f', // teal
+    '#e0457b', // magenta
+    '#4a4a4a', // graphite
+  ];
+  const UNIT_PER_COLOR = 5; // every reagent always deals out in units of 5
+
+  // Meniscus curvature per solvent: 'concave' = wets the glass (climbs at the
+  // walls, dips in the middle — typical of polar/aqueous solvents), 'convex' =
+  // beads up (domes at the middle — typical of non-wetting, viscous, or
+  // mercury-like liquids). Assigned per reagent so the same solvent always
+  // reads the same way.
+  const MENISCUS = {
+    0: 'concave', // ACS Blue — aqueous
+    1: 'convex',  // ACS Gold — viscous/oily
+    2: 'concave', // reaction green — aqueous
+    3: 'convex',  // reaction red — oily
+    4: 'concave', // violet — aqueous
+    5: 'convex',  // teal — oily
+    6: 'concave', // magenta — aqueous
+    7: 'convex',  // graphite — dense/non-wetting
+  };
+  function meniscusSvg(type, color){
+    const shade = shadeColor(color, -18);
+    if(type==='convex'){
+      return `<svg viewBox="0 0 100 10" preserveAspectRatio="none">
+        <path d="M0,8 Q50,1 100,8 L100,10 L0,10 Z" fill="${color}"/>
+        <path d="M0,8 Q50,1 100,8" fill="none" stroke="${shade}" stroke-width="0.8"/>
+      </svg>`;
+    }
+    // default: concave
+    return `<svg viewBox="0 0 100 10" preserveAspectRatio="none">
+      <path d="M0,2 Q50,9 100,2 L100,10 L0,10 Z" fill="${color}"/>
+      <path d="M0,2 Q50,9 100,2" fill="none" stroke="${shade}" stroke-width="0.8"/>
+    </svg>`;
+  }
+  function shadeColor(hex, amt){
+    const n = parseInt(hex.slice(1),16);
+    let r = Math.min(255,Math.max(0,(n>>16)+amt));
+    let g = Math.min(255,Math.max(0,((n>>8)&0xff)+amt));
+    let b = Math.min(255,Math.max(0,(n&0xff)+amt));
+    return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+  }
+
+  // ---------- Glassware geometry ----------
+  // Each shape has an intrinsic base diameter (its "width family"), like real
+  // glassware: test tubes are slender, beakers are wide, etc. Height is DERIVED
+  // from capacity and width so that width × height (≈ volume) stays consistent
+  // for a given capacity regardless of which shape is drawn — a small vessel
+  // reads small, a big one reads big, and no two same-capacity vessels lie
+  // about how much they hold.
+  const SHAPES = ['cylinder', 'erlenmeyer', 'round', 'beaker', 'test'];
+  const BASE_DIAMETER = { cylinder:34, erlenmeyer:40, round:40, beaker:50, test:26 };
+  const VOLUME_K = 950; // tuned so capacity 5 / cylinder ≈ the v3 baseline size
+
+  function vesselDims(shape, capacity){
+    const base = BASE_DIAMETER[shape] || 34;
+    // mild width growth with capacity, like real glassware comes in bigger
+    // diameters as well as taller ones at larger nominal volumes
+    const vw = Math.round(base * (0.82 + 0.045*capacity));
+    const vh = Math.round((VOLUME_K * capacity) / vw);
+    return { vw, vh };
+  }
+
+  let state = {
+    level: 1,
+    vials: [],
+    capacities: [], // per-vessel max segment count — now varies per vessel
+    history: [],
+    moves: 0,
+    selected: null,
+    bestMoves: {},
+    glass: [], // { shape, size, capacity, isBoss } per vessel
+    distilled: [], // color indices permanently banked via the rotovap
+  };
+
+  const boardEl = document.getElementById('board');
+  const moveCountEl = document.getElementById('moveCount');
+  const levelNumEl = document.getElementById('levelNum');
+  const bestMovesEl = document.getElementById('bestMoves');
+  const distilledCountEl = document.getElementById('distilledCount');
+  const toastEl = document.getElementById('toast');
+  const winOverlay = document.getElementById('winOverlay');
+  const winText = document.getElementById('winText');
+
+  function toast(msg, ms=1400){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>toastEl.classList.remove('show'), ms);
+  }
+
+  function isBossLevel(level){ return level % 5 === 0; }
+
+  function generateLevel(level){
+    const numColors = Math.min(4 + Math.floor((level-1)/2), PALETTE.length);
+    const emptyVials = level < 3 ? 2 : (level % 4 === 0 ? 3 : 2);
+    const colors = PALETTE.slice(0, numColors);
+    const boss = isBossLevel(level);
+
+    let pool = [];
+    colors.forEach((c,i)=> { for(let k=0;k<UNIT_PER_COLOR;k++) pool.push(i); });
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]] = [arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    let vials, capacities, glass, attempts = 0;
+    do {
+      shuffle(pool);
+      vials = [];
+      capacities = [];
+      glass = [];
+
+      // Reagent vessels: always hold exactly UNIT_PER_COLOR at capacity,
+      // shape varies for flavor but capacity — and therefore true volume — is fixed.
+      for(let i=0;i<numColors;i++){
+        vials.push(pool.slice(i*UNIT_PER_COLOR, i*UNIT_PER_COLOR+UNIT_PER_COLOR));
+        const shape = SHAPES[Math.floor(Math.random()*SHAPES.length)];
+        capacities.push(UNIT_PER_COLOR);
+        glass.push({ shape, capacity: UNIT_PER_COLOR, isBoss:false });
+      }
+
+      // Empty utility vessels: real capacity variety (4–6), which the vessel's
+      // drawn size honestly reflects. On boss levels, one utility vessel is a
+      // rotovap with a larger capacity and its own apparatus art.
+      for(let i=0;i<emptyVials;i++){
+        vials.push([]);
+        const isBossVessel = boss && i===0;
+        const capacity = isBossVessel ? 8 : (4 + Math.floor(Math.random()*3)); // 4,5,6
+        const shape = isBossVessel ? 'round' : SHAPES[Math.floor(Math.random()*SHAPES.length)];
+        capacities.push(capacity);
+        glass.push({ shape, capacity, isBoss:isBossVessel });
+      }
+      attempts++;
+    } while(isAlreadySolved(vials, capacities) && attempts < 20);
+
+    return { vials, capacities, glass };
+  }
+
+  function isAlreadySolved(vials, capacities){
+    return vials.every((v,i) => v.length===0 || (v.length===capacities[i] && v.every(c=>c===v[0])));
+  }
+
+  function isVialSolved(idx){
+    const v = state.vials[idx], cap = state.capacities[idx];
+    return v.length===cap && v.length>0 && v.every(c=>c===v[0]);
+  }
+
+  function canPour(fromIdx, toIdx){
+    if(fromIdx===toIdx) return false;
+    const from = state.vials[fromIdx];
+    const to = state.vials[toIdx];
+    if(isVialSolved(fromIdx)) return false; // sealed vessels don't pour
+    if(from.length===0) return false;
+    if(to.length>=state.capacities[toIdx]) return false;
+    const topColor = from[from.length-1];
+    if(to.length===0) return true;
+    return to[to.length-1]===topColor;
+  }
+
+  function pourAmount(fromIdx, toIdx){
+    const from = state.vials[fromIdx];
+    const to = state.vials[toIdx];
+    const topColor = from[from.length-1];
+    let n = 0;
+    for(let i=from.length-1;i>=0;i--){ if(from[i]===topColor) n++; else break; }
+    return Math.min(n, state.capacities[toIdx] - to.length);
+  }
+
+  function doPour(fromIdx, toIdx){
+    const amt = pourAmount(fromIdx, toIdx);
+    const from = state.vials[fromIdx];
+    const to = state.vials[toIdx];
+    const moved = [];
+    for(let i=0;i<amt;i++) moved.push(from.pop());
+    moved.reverse().forEach(c=>to.push(c));
+    return amt;
+  }
+
+  function saveHistory(){
+    state.history.push({ vials: JSON.stringify(state.vials), distilledLen: state.distilled.length });
+    if(state.history.length>60) state.history.shift();
+  }
+
+  function checkWin(){
+    return state.vials.every((v,i) => v.length===0 || (v.length===state.capacities[i] && v.every(c=>c===v[0])));
+  }
+
+  function tickMarks(capacity){
+    // build a small set of graduation ticks along the tube height
+    let html = '';
+    for(let i=1;i<capacity;i++){
+      const pct = (i/capacity)*100;
+      html += `<div class="tick major" style="bottom:${pct}%"></div>`;
+    }
+    for(let i=0;i<capacity*2;i++){
+      const pct = (i/(capacity*2))*100;
+      if(i % 2 !== 0) html += `<div class="tick" style="bottom:${pct}%"></div>`;
+    }
+    return html;
+  }
+
+  function render(justSolvedSet){
+    boardEl.innerHTML = '';
+    state.vials.forEach((segments, idx) => {
+      const solved = isVialSolved(idx);
+      const capacity = state.capacities[idx];
+      const g = state.glass[idx] || { shape:'cylinder', capacity, isBoss:false };
+      const wrap = document.createElement('div');
+      wrap.className = 'vial-wrap';
+      if(state.selected===idx) wrap.classList.add('selected');
+      if(solved) wrap.classList.add('solved');
+      if(g.isBoss) wrap.classList.add('is-rotovap');
+      if(justSolvedSet && justSolvedSet.has(idx)) wrap.classList.add('just-solved');
+      wrap.dataset.idx = idx;
+
+      if(g.isBoss){
+        const rig = document.createElement('div');
+        rig.className = 'rotovap-rig';
+        rig.innerHTML = `
+          <div class="boss-tag">ROTOVAP</div>
+          <svg width="74" height="60" viewBox="0 0 74 60">
+            <!-- Graham-style coiled condenser: vapor travels up the tilted neck, through the coil -->
+            <g class="condenser-coil" fill="none" stroke="#8fa3b8" stroke-width="2.2">
+              <path d="M40 44 L48 30"/>
+              <path d="M44 34 C 56 30, 56 22, 44 20 C 34 18, 34 12, 44 10 C 54 8, 54 3, 44 2"/>
+            </g>
+            <circle class="drip d1" cx="45" cy="12" r="1.5" fill="#5cd9ff"/>
+            <circle class="drip d2" cx="44" cy="20" r="1.3" fill="#5cd9ff"/>
+            <!-- receiving flask: flashes gold the instant a batch is distilled into it -->
+            <g class="receiving-flask" data-role="receiver">
+              <path d="M58 2 L66 2 L66 6 L70 16 C 72 20, 68 24, 64 24 C 60 24, 56 20, 58 16 L58 6 Z"
+                    fill="#eef1ea" stroke="var(--line)" stroke-width="1.3"/>
+              <path d="M59.5 15 C 60 19, 68 19, 68.5 15 L 70 16 C 72 20, 68 24, 64 24 C 60 24, 56 20, 58 16 Z"
+                    fill="#c9d8e0"/>
+            </g>
+            <!-- motor housing at the flask neck -->
+            <rect x="26" y="42" width="16" height="8" rx="2" fill="#9aa6ad" stroke="#6d7880"/>
+          </svg>`;
+        wrap.appendChild(rig);
+      }
+
+      const flask = document.createElement('div');
+      flask.className = 'flask shape-'+g.shape;
+      const dims = vesselDims(g.shape, capacity);
+      flask.style.setProperty('--vw', dims.vw+'px');
+      flask.style.setProperty('--vh', dims.vh+'px');
+
+      const lip = document.createElement('div');
+      lip.className = 'flask-lip';
+      flask.appendChild(lip);
+
+      const stopper = document.createElement('div');
+      stopper.className = 'stopper';
+      flask.appendChild(stopper);
+
+      const body = document.createElement('div');
+      body.className = 'flask-body';
+      body.innerHTML = tickMarks(capacity);
+      segments.forEach(colorIdx => {
+        const seg = document.createElement('div');
+        seg.className = 'seg';
+        seg.style.height = (100/capacity)+'%';
+        seg.style.background = PALETTE[colorIdx];
+        body.appendChild(seg);
+      });
+      if(segments.length>0){
+        const topColorIdx = segments[segments.length-1];
+        const filledPct = (segments.length/capacity)*100;
+        const mType = MENISCUS[topColorIdx] || 'flat';
+        const mColor = PALETTE[topColorIdx];
+        const mWrap = document.createElement('div');
+        mWrap.className = 'meniscus-wrap';
+        mWrap.style.top = `calc(${100-filledPct}% - 4px)`;
+        mWrap.innerHTML = meniscusSvg(mType, mColor);
+        body.appendChild(mWrap);
+      }
+      flask.appendChild(body);
+
+      const base = document.createElement('div');
+      base.className = 'flask-base';
+      flask.appendChild(base);
+
+      if(solved){
+        const badge = document.createElement('div');
+        badge.className = 'seal-badge';
+        badge.textContent = '✓';
+        flask.appendChild(badge);
+      }
+
+      wrap.appendChild(flask);
+      const label = document.createElement('div');
+      label.className = 'vial-label';
+      label.innerHTML = '<b>#'+String(idx+1).padStart(2,'0')+'</b> · '+capacity+'u';
+      wrap.appendChild(label);
+
+      wrap.addEventListener('click', () => onVialClick(idx));
+      boardEl.appendChild(wrap);
+    });
+
+    moveCountEl.textContent = state.moves;
+    levelNumEl.textContent = state.level;
+    bestMovesEl.textContent = state.bestMoves[state.level] ?? '–';
+    distilledCountEl.textContent = state.distilled.length;
+    document.getElementById('undoBtn').disabled = state.history.length===0;
+  }
+
+  function onVialClick(idx){
+    clearHint();
+    if(isVialSolved(idx) && state.selected===null){
+      toast('Sealed — stable compound');
+      return;
+    }
+    if(state.selected===null){
+      if(state.vials[idx].length===0){ toast('Flask empty'); playError(); return; }
+      state.selected = idx;
+      playClick();
+      render();
+      return;
+    }
+    if(state.selected===idx){ state.selected = null; render(); return; }
+    if(canPour(state.selected, idx)){
+      const fromIdx = state.selected, toIdx = idx;
+      const fromEl = boardEl.children[fromIdx];
+      const toEl = boardEl.children[toIdx];
+      const color = PALETTE[state.vials[fromIdx][state.vials[fromIdx].length-1]];
+      const amount = pourAmount(fromIdx, toIdx);
+
+      const tilt = toIdx > fromIdx ? '28deg' : '-28deg';
+      fromEl.style.setProperty('--tilt', tilt);
+      fromEl.classList.add('pour-from');
+      toEl.classList.add('pour-to');
+      spawnTransfer(fromEl.querySelector('.flask-body'), toEl.querySelector('.flask-body'), color, amount);
+      playPour(amount);
+
+      saveHistory();
+      doPour(fromIdx, toIdx);
+      state.moves++;
+      state.selected = null;
+
+      const nowSolved = isVialSolved(toIdx);
+      const isBossVessel = state.glass[toIdx] && state.glass[toIdx].isBoss;
+      const justSolvedSet = new Set();
+      if(nowSolved && !isBossVessel) justSolvedSet.add(toIdx);
+
+      setTimeout(()=>{
+        render(justSolvedSet);
+        if(nowSolved){
+          if(isBossVessel){
+            // the rotovap doesn't lock — it distills the batch and empties itself for reuse
+            setTimeout(()=>triggerDistill(toIdx), 700);
+          } else {
+            playSeal();
+            attemptWinCheck();
+          }
+        }
+      }, 300);
+    } else {
+      if(state.vials[idx].length>0 && !isVialSolved(idx)){ state.selected = idx; playClick(); render(); }
+      else {
+        toast(isVialSolved(idx) ? 'Sealed — stable compound' : 'Reagents incompatible');
+        playError();
+        const el = boardEl.children[state.selected];
+        el.classList.add('shake');
+        setTimeout(()=>el.classList.remove('shake'), 300);
+        state.selected = null;
+        render();
+      }
+    }
+  }
+
+  function attemptWinCheck(){
+    if(checkWin()){
+      setTimeout(()=>{
+        const prevBest = state.bestMoves[state.level];
+        if(prevBest===undefined || state.moves < prevBest) state.bestMoves[state.level] = state.moves;
+        winText.textContent = `Isolated in ${state.moves} pours.`;
+        winOverlay.classList.add('show');
+        playWin();
+        spawnBurst();
+      }, 400);
+    }
+  }
+
+  function triggerDistill(idx){
+    const vialEl = boardEl.children[idx];
+    if(!vialEl) return;
+    const colorIdx = state.vials[idx][0];
+    playDistill();
+    spawnSteam(vialEl);
+    const receiver = vialEl.querySelector('.receiving-flask');
+    if(receiver) receiver.classList.add('collected');
+    saveHistory(); // so undo can step back through the distill separately from the pour
+    setTimeout(()=>{
+      state.vials[idx] = [];
+      state.distilled.push(colorIdx);
+      render();
+      toast('Distilled — reagent banked');
+      attemptWinCheck();
+    }, 650);
+  }
+
+  function clearHint(){
+    document.querySelectorAll('.vial-wrap.hint').forEach(el=>el.classList.remove('hint'));
+  }
+
+  function findHint(){
+    const n = state.vials.length;
+    let best = null;
+    for(let i=0;i<n;i++){
+      for(let j=0;j<n;j++){
+        if(i===j) continue;
+        if(canPour(i,j)){
+          const to = state.vials[j];
+          const from = state.vials[i];
+          const completes = (to.length + pourAmount(i,j) === state.capacities[j]) && (to.length>0 || from.length===state.capacities[i]);
+          const score = completes ? 2 : (to.length>0 ? 1 : 0);
+          if(!best || score>best.score) best = {from:i, to:j, score};
+        }
+      }
+    }
+    return best;
+  }
+
+  document.getElementById('undoBtn').addEventListener('click', ()=>{
+    if(state.history.length===0) return;
+    const h = state.history.pop();
+    state.vials = JSON.parse(h.vials);
+    state.distilled.length = h.distilledLen;
+    state.selected = null;
+    state.moves = Math.max(0, state.moves-1);
+    playUndo();
+    render();
+  });
+
+  document.getElementById('hintBtn').addEventListener('click', ()=>{
+    const h = findHint();
+    clearHint();
+    if(!h){ toast('No reaction available'); playError(); return; }
+    playHint();
+    const els = boardEl.children;
+    els[h.from].classList.add('hint');
+    els[h.to].classList.add('hint');
+    setTimeout(clearHint, 1500);
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', ()=> { playClick(); startLevel(state.level); });
+  document.getElementById('nextBtn').addEventListener('click', ()=> { playClick(); startLevel(state.level+1); });
+  document.getElementById('winNext').addEventListener('click', ()=>{
+    playClick();
+    winOverlay.classList.remove('show');
+    startLevel(state.level+1);
+  });
+
+  function updateHazardDiamond(level){
+    const health = Math.min(4, Math.floor((level-1)/3));
+    const flame = Math.min(4, Math.floor((level-1)/4));
+    const react = Math.min(4, Math.floor((level-1)/5));
+    document.getElementById('hz-health-n').textContent = health;
+    document.getElementById('hz-flame-n').textContent = flame;
+    document.getElementById('hz-react-n').textContent = react;
+    document.getElementById('hazardLevelLabel').textContent = level;
+  }
+
+  function startLevel(level){
+    state.level = level;
+    const gen = generateLevel(level);
+    state.vials = gen.vials;
+    state.capacities = gen.capacities;
+    state.glass = gen.glass;
+    state.history = [];
+    state.moves = 0;
+    state.selected = null;
+    state.distilled = [];
+    render();
+    updateHazardDiamond(level);
+    if(isBossLevel(level)) toast('Boss batch — fill the rotovap to bank a reagent', 2400);
+  }
+
+  console.log('REAGENT', APP_VERSION);
+  startLevel(1);
+})();
+</script>
+</body>
+</html>
