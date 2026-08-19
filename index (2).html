@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mobile Scratch Work</title>
+<style>
+  :root{
+    --navy:#002F6C;
+    --gold:#F2A900;
+    --teal:#00857D;
+    --ink:#16202c;
+    --paper:#f4f2ec;
+    --line:rgba(0,47,108,.14);
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    color:var(--ink);
+    background:
+      linear-gradient(var(--line) 1px, transparent 1px) 0 0/100% 28px,
+      linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0/28px 100%,
+      var(--paper);
+    min-height:100vh;
+    padding:clamp(20px,6vw,56px) clamp(16px,5vw,32px) 64px;
+  }
+  .wrap{max-width:640px;margin:0 auto}
+
+  header{
+    border-left:4px solid var(--gold);
+    padding-left:14px;
+    margin-bottom:clamp(28px,7vw,44px);
+  }
+  .eyebrow{
+    font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--teal);margin-bottom:8px;
+  }
+  h1{
+    font-size:clamp(26px,7vw,38px);
+    font-weight:700;letter-spacing:-.02em;color:var(--navy);
+    line-height:1.1;
+  }
+  header p{margin-top:10px;font-size:13px;line-height:1.6;opacity:.72;max-width:46ch}
+
+  ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+
+  a.item{
+    display:block;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-left:3px solid var(--navy);
+    border-radius:3px;
+    padding:16px 18px;
+    text-decoration:none;color:inherit;
+    transition:transform .14s ease, border-left-color .14s ease, box-shadow .14s ease;
+  }
+  a.item:hover,a.item:focus-visible{
+    transform:translateX(4px);
+    border-left-color:var(--gold);
+    box-shadow:0 4px 14px rgba(0,47,108,.10);
+  }
+  a.item:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+
+  .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .name{font-size:16px;font-weight:700;color:var(--navy);letter-spacing:-.01em}
+  .ver{
+    font-size:10px;letter-spacing:.08em;
+    padding:2px 6px;border-radius:2px;
+    background:rgba(242,169,0,.18);color:#8a6100;
+    white-space:nowrap;
+  }
+  .desc{margin-top:6px;font-size:12.5px;line-height:1.55;opacity:.7}
+  .file{margin-top:8px;font-size:11px;opacity:.42;word-break:break-all}
+
+  footer{
+    margin-top:36px;padding-top:16px;border-top:1px solid var(--line);
+    font-size:11px;opacity:.5;
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    a.item{transition:none}
+    a.item:hover,a.item:focus-visible{transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Index</div>
+    <h1>Mobile Scratch Work</h1>
+    <p>Self-contained HTML prototypes. Each one runs on its own — open it and play.</p>
+  </header>
+
+  <ul>
+    <li>
+      <a class="item" href="phoenix-flap-v5.0.0.html">
+        <div class="row"><span class="name">Phoenix Flap</span><span class="ver">v5.0.0</span></div>
+        <div class="desc">Tap to flap through the apparatus. Four HP, chiptune soundtrack. Latest build.</div>
+        <div class="file">phoenix-flap-v5.0.0.html</div>
+      </a>
+    </li>
+    <li>
+      <a class="item" href="phoenix-flap-v4.4.0.html">
+        <div class="row"><span class="name">Phoenix Flap</span><span class="ver">v4.4.0</span></div>
+        <div class="desc">Previous release of the flap game, kept for comparison.</div>
+        <div class="file">phoenix-flap-v4.4.0.html</div>
+      </a>
+    </li>
+    <li>
+      <a class="item" href="phoenix-launch-v2.1.0.html">
+        <div class="row"><span class="name">Phoenix Launch</span><span class="ver">v2.1.0</span></div>
+        <div class="desc">Drag back from the ring stand to launch, tap mid-flight for an ability. Glass shatters, steel doesn't.</div>
+        <div class="file">phoenix-launch-v2.1.0.html</div>
+      </a>
+    </li>
+    <li>
+      <a class="item" href="reagent-sort-v6.html">
+        <div class="row"><span class="name">Reagent</span><span class="ver">v6</span></div>
+        <div class="desc">Flask sorting puzzle. Pour colors between vessels until each one holds a single reagent.</div>
+        <div class="file">reagent-sort-v6.html</div>
+      </a>
+    </li>
+    <li>
+      <a class="item" href="tournee-v32-soundcheck.html">
+        <div class="row"><span class="name">Tournée</span><span class="ver">v32 · soundcheck</span></div>
+        <div class="desc">Angine de Poitrine. A tour run night by night, with jump-to-date navigation and per-night notes.</div>
+        <div class="file">tournee-v32-soundcheck.html</div>
+      </a>
+    </li>
+  </ul>
+
+  <footer>5 projects · drop this file at the repo root</footer>
+
+</div>
+</body>
+</html>
