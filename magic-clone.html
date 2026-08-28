@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Magic Clone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#151f2e;
+  --bg2:#0e1622;
+  --ink:#eaf2ff;
+  --muted:#8ea3bd;
+  --gold:#ffc247;
+  --tw:64px;
+  --th:170px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  background:
+    radial-gradient(120% 80% at 50% -10%, #24344b 0%, var(--bg) 45%, var(--bg2) 100%);
+  color:var(--ink);
+  font-family:"Nunito",system-ui,sans-serif;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  user-select:none;
+}
+/* ---------- top bar ---------- */
+header{
+  flex:0 0 auto;padding:14px 16px 6px;display:flex;align-items:center;gap:10px;
+}
+.brand{
+  font-family:"Baloo 2",cursive;font-weight:800;line-height:.9;
+  font-size:20px;letter-spacing:.5px;
+  padding:8px 12px;border-radius:14px;
+  background:linear-gradient(#2b3d59,#1b283a);
+  border:2px solid rgba(255,255,255,.12);
+  box-shadow:0 4px 0 rgba(0,0,0,.35);
+}
+.brand span{display:block;color:var(--gold);font-size:15px}
+.spacer{flex:1}
+.chip{
+  font-family:"Baloo 2",cursive;font-weight:800;font-size:15px;
+  background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.1);
+  padding:7px 14px;border-radius:999px;box-shadow:0 3px 0 rgba(0,0,0,.3);
+}
+.chip b{color:var(--gold)}
+.tagline{
+  flex:0 0 auto;text-align:center;font-family:"Baloo 2",cursive;font-weight:800;
+  font-size:clamp(20px,5.4vw,30px);margin:2px 0 0;
+  text-shadow:0 3px 0 rgba(0,0,0,.35);
+}
+.tagline small{display:block;font-family:"Nunito";font-weight:700;font-size:12px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px;text-shadow:none}
+
+/* ---------- board ---------- */
+#board{
+  flex:1 1 auto;display:flex;align-items:center;justify-content:center;
+  padding:8px 10px;min-height:0;
+}
+#grid{
+  display:grid;justify-content:center;align-content:center;
+  gap:14px 10px;
+}
+/* bottle */
+.tube{
+  width:var(--tw);height:var(--th);position:relative;cursor:pointer;
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1);
+  will-change:transform;
+}
+.tube.raised{transform:translateY(-16px)}
+.tube.nudge{animation:nudge .3s}
+@keyframes nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.neck{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:46%;height:13%;
+  border-radius:6px 6px 2px 2px;
+  background:linear-gradient(90deg,rgba(255,255,255,.16),rgba(255,255,255,.05) 40%,rgba(0,0,0,.25));
+  border:2px solid rgba(255,255,255,.14);border-bottom:none;
+}
+.body{
+  position:absolute;left:0;right:0;top:11%;bottom:0;
+  border-radius:14px 14px 18px 18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.02));
+  border:2px solid rgba(255,255,255,.14);
+  overflow:hidden;
+  box-shadow:inset 0 -10px 18px rgba(0,0,0,.35), 0 6px 14px rgba(0,0,0,.35);
+}
+.liquid{position:absolute;inset:0;display:flex;flex-direction:column-reverse}
+.seg{
+  height:25%;width:100%;position:relative;
+  background:var(--c);
+  box-shadow:inset 0 6px 10px rgba(255,255,255,.25), inset 0 -6px 10px rgba(0,0,0,.22);
+}
+.seg.pop{animation:fill .22s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes fill{from{transform:scaleY(.05);opacity:.6}to{transform:scaleY(1);opacity:1}}
+.gloss{
+  position:absolute;left:8%;top:2%;width:16%;height:88%;border-radius:99px;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.06));
+  filter:blur(1px);pointer-events:none;
+}
+.gloss.r{left:auto;right:6%;width:7%;opacity:.28}
+.cork{
+  position:absolute;top:-9%;left:50%;transform:translate(-50%,-14px) scale(.6);
+  width:50%;height:16%;border-radius:7px;
+  background:linear-gradient(180deg,#e0aa63,#a9752f);
+  border:2px solid rgba(0,0,0,.25);
+  opacity:0;transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+}
+.tube.done .cork{opacity:1;transform:translate(-50%,0) scale(1)}
+.check{
+  position:absolute;top:46%;left:50%;transform:translate(-50%,-50%) scale(0) rotate(-25deg);
+  width:62%;height:62%;pointer-events:none;
+  transition:transform .35s cubic-bezier(.34,1.8,.5,1);
+  filter:drop-shadow(0 3px 4px rgba(0,0,0,.4));
+}
+.tube.done .check{transform:translate(-50%,-50%) scale(1) rotate(0)}
+.tube.done .body{border-color:rgba(255,255,255,.3)}
+
+/* ---------- controls ---------- */
+footer{
+  flex:0 0 auto;display:flex;gap:12px;justify-content:center;padding:10px 16px 22px;
+}
+.btn{
+  font-family:"Baloo 2",cursive;font-weight:800;font-size:15px;color:#fff;
+  background:linear-gradient(180deg,#4d6685,#33455c);
+  border:none;border-radius:16px;padding:12px 18px;min-width:92px;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:transform .08s;
+}
+.btn:active{transform:translateY(3px)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.b1{background:linear-gradient(180deg,#4d6685,#33455c);box-shadow:0 5px 0 #1d2836}
+.btn.b2{background:linear-gradient(180deg,#5b8ee0,#3a63ad);box-shadow:0 5px 0 #22406f}
+.btn.b3{background:linear-gradient(180deg,#ffcc5c,#e8a02a);color:#4a2f00;box-shadow:0 5px 0 #9c6a10}
+.btn small{font-family:"Nunito";font-weight:700;font-size:10px;opacity:.75;letter-spacing:1px}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+
+/* ---------- pour fx ---------- */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+.flying{position:fixed;z-index:41;pointer-events:none;transform-origin:50% 90%}
+.stream{
+  position:fixed;z-index:39;width:9px;border-radius:5px;
+  background:linear-gradient(180deg,var(--c),color-mix(in srgb,var(--c) 75%,#000));
+  box-shadow:0 0 10px color-mix(in srgb,var(--c) 60%,transparent);
+}
+.drop{position:fixed;border-radius:50%;z-index:42}
+
+/* ---------- overlay ---------- */
+#over{
+  position:fixed;inset:0;z-index:60;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(8,13,21,.72);backdrop-filter:blur(4px);
+}
+#over.on{display:flex;animation:fade .25s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.card{
+  width:min(88vw,340px);text-align:center;padding:26px 22px 22px;border-radius:26px;
+  background:linear-gradient(180deg,#2b3d59,#1a2536);
+  border:3px solid rgba(255,255,255,.15);box-shadow:0 18px 40px rgba(0,0,0,.55);
+  animation:pop .35s cubic-bezier(.34,1.6,.5,1);
+}
+@keyframes pop{from{transform:scale(.7) translateY(20px);opacity:0}to{transform:none;opacity:1}}
+.card h2{font-family:"Baloo 2";font-size:30px;margin:0 0 4px;color:var(--gold);text-shadow:0 3px 0 rgba(0,0,0,.35)}
+.card p{margin:0 0 18px;color:var(--muted);font-size:14px}
+.confetti{position:fixed;width:9px;height:14px;z-index:61;pointer-events:none}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">MAGIC<span>CLONE</span></div>
+  <div class="spacer"></div>
+  <div class="chip">Level <b id="lvl">1</b></div>
+  <div class="chip">Moves <b id="mv">0</b></div>
+</header>
+
+<h1 class="tagline" id="tagline">Magic Clone<small id="sub">because I was bored</small></h1>
+
+<div id="board"><div id="grid"></div></div>
+
+<footer>
+  <button class="btn b1" id="undo">Undo<small>STEP BACK</small></button>
+  <button class="btn b1" id="restart">Restart<small>SAME LEVEL</small></button>
+  <button class="btn b2" id="addTube">+ Flask<small><span id="addLeft">1</span> LEFT</small></button>
+</footer>
+
+<div id="fx"></div>
+
+<div id="over"><div class="card">
+  <h2 id="ovTitle">Level clear!</h2>
+  <p id="ovText">Nice pouring.</p>
+  <button class="btn b3" id="next" style="margin:0 auto">Next level<small>KEEP GOING</small></button>
+</div></div>
+
+<script>
+/* ============================ audio ============================ */
+const Audio_ = {
+  ctx:null,
+  init(){ if(!this.ctx){ try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+          if(this.ctx && this.ctx.state==='suspended') this.ctx.resume(); },
+  now(){ return this.ctx.currentTime; },
+  tone(freq, dur, type='sine', gain=.16, slideTo=null, delay=0){
+    if(!this.ctx) return;
+    const t = this.now()+delay;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo,t+dur);
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(gain,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g).connect(this.ctx.destination); o.start(t); o.stop(t+dur+.05);
+  },
+  noise(dur, f0, f1, gain=.12, delay=0){
+    if(!this.ctx) return;
+    const t=this.now()+delay, len=Math.ceil(this.ctx.sampleRate*dur);
+    const buf=this.ctx.createBuffer(1,len,this.ctx.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+    const src=this.ctx.createBufferSource(); src.buffer=buf;
+    const bp=this.ctx.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=3;
+    bp.frequency.setValueAtTime(f0,t); bp.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    const g=this.ctx.createGain(); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    src.connect(bp).connect(g).connect(this.ctx.destination); src.start(t); src.stop(t+dur);
+  },
+  pick(){ this.tone(520,.10,'triangle',.14,760); },
+  drop(){ this.tone(400,.09,'triangle',.10,240); },
+  pour(i){ this.noise(.30, 900+i*180, 320, .10); this.tone(300+i*70,.16,'sine',.06,220+i*60); },
+  bad(){ this.tone(190,.16,'square',.09,120); },
+  done(){ [0,1,2].forEach(i=>this.tone([784,988,1319][i],.35,'triangle',.13,null,i*.07)); },
+  win(){ [523,659,784,1047,1319].forEach((f,i)=>this.tone(f,.5,'triangle',.13,null,i*.09)); this.noise(.6,3000,600,.05,.1); },
+  undo(){ this.tone(500,.12,'sine',.10,300); }
+};
+
+/* ============================ level model ============================ */
+const CAP = 4;
+const COLORS = ['#e0342f','#3a9ce8','#8cc63e','#f2a03d','#a95ff0','#25c4b0','#ef5aa8','#f5d63d','#7f8fa6','#5b6ee8','#d9744f','#63d84a'];
+let level=1, tubes=[], initial=[], moves=0, history=[], selected=-1, addLeft=1, busy=false, cleared=new Set();
+
+function levelConfig(n){
+  const colors = Math.min(3 + Math.floor((n-1)/2), 12);
+  const empties = n < 4 ? 2 : (colors >= 8 ? 3 : 2);
+  return {colors, empties};
+}
+function topRun(t){
+  if(!t.length) return {c:null,k:0};
+  const c=t[t.length-1]; let k=1;
+  while(k<t.length && t[t.length-1-k]===c) k++;
+  return {c,k};
+}
+function canPour(a,b){
+  if(a===b) return 0;
+  const s=tubes[a], d=tubes[b];
+  if(!s.length || d.length>=CAP) return 0;
+  const {c,k}=topRun(s);
+  if(d.length && d[d.length-1]!==c) return 0;
+  if(s.length===k && d.length===0) return 0;   // pointless move
+  return Math.min(k, CAP-d.length);
+}
+/* --- solver: DFS over pour states, verifies a deal is winnable --- */
+function key(t){ return t.map(x=>x.join(',')).sort().join('|'); }
+function solvable(start){
+  const seen=new Set(); let nodes=0; const LIMIT=150000;
+  const stack=[start.map(x=>[...x])];
+  while(stack.length){
+    if(++nodes>LIMIT) return false;
+    const st=stack.pop();
+    if(st.every(t=>t.length===0||(t.length===CAP&&t.every(x=>x===t[0])))) return true;
+    const k=key(st); if(seen.has(k)) continue; seen.add(k);
+    const kids=[];
+    for(let a=0;a<st.length;a++){
+      const s=st[a]; if(!s.length) continue;
+      const c=s[s.length-1]; let run=1;
+      while(run<s.length && s[s.length-1-run]===c) run++;
+      if(run===s.length && s.length===CAP) continue;      // finished flask, leave it
+      for(let b=0;b<st.length;b++){
+        if(a===b) continue;
+        const d=st[b]; if(d.length>=CAP) continue;
+        if(d.length && d[d.length-1]!==c) continue;
+        if(run===s.length && d.length===0) continue;      // pointless shuffle
+        const amt=Math.min(run,CAP-d.length);
+        const nx=st.map(x=>[...x]);
+        for(let i=0;i<amt;i++) nx[b].push(nx[a].pop());
+        const score=(nx[b].length===CAP&&nx[b].every(x=>x===nx[b][0])?2:0)+(nx[a].length===0?1:0);
+        kids.push({nx,score});
+      }
+    }
+    kids.sort((p,q)=>p.score-q.score);                    // best pushed last, popped first
+    for(const c of kids) stack.push(c.nx);
+  }
+  return false;
+}
+function deal(colors,empties){
+  const pool=[];
+  for(let i=0;i<colors;i++) for(let j=0;j<CAP;j++) pool.push(i);
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const t=[];
+  for(let i=0;i<colors;i++) t.push(pool.slice(i*CAP,i*CAP+CAP));
+  for(let i=0;i<empties;i++) t.push([]);
+  return t;
+}
+function generate(colors,empties){
+  for(let tries=0;tries<300;tries++){
+    const t=deal(colors,empties);
+    let boring=false;                       // no flask may start with 3+ of one color
+    for(const x of t){
+      if(!x.length) continue;
+      const n={}; x.forEach(c=>n[c]=(n[c]||0)+1);
+      if(Math.max(...Object.values(n))>=3){ boring=true; break; }
+    }
+    if(boring) continue;
+    if(solvable(t)) return t;
+  }
+  return deal(colors,empties);
+}
+const isDone = t => t.length===0 || (t.length===CAP && t.every(x=>x===t[0]));
+const isWin  = () => tubes.every(isDone);
+
+/* ============================ rendering ============================ */
+const grid=document.getElementById('grid'), board=document.getElementById('board');
+const CHECK = `<svg class="check" viewBox="0 0 48 48"><path d="M6 26 L18 38 L42 10" fill="none" stroke="#1e7a12" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 26 L18 38 L42 10" fill="none" stroke="#5fdc35" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function layout(){
+  const n=tubes.length;
+  let cols = n<=6 ? n : n<=12 ? Math.ceil(n/2) : n<=24 ? Math.ceil(n/3) : 8;
+  cols=Math.min(cols,8);
+  const rows=Math.ceil(n/cols);
+  const bw=board.clientWidth-20, bh=board.clientHeight-16;
+  let w=Math.min(78,(bw-(cols-1)*10)/cols);
+  let h=Math.min(w*2.65,(bh-(rows-1)*14)/rows);
+  w=Math.min(w,h/2.65);
+  document.documentElement.style.setProperty('--tw',w+'px');
+  document.documentElement.style.setProperty('--th',h+'px');
+  grid.style.gridTemplateColumns=`repeat(${cols},var(--tw))`;
+}
+function build(){
+  grid.innerHTML='';
+  tubes.forEach((_,i)=>{
+    const el=document.createElement('div');
+    el.className='tube'; el.dataset.i=i; el.tabIndex=0;
+    el.setAttribute('role','button');
+    el.innerHTML=`<div class="cork"></div><div class="neck"></div>
+      <div class="body"><div class="liquid"></div><div class="gloss"></div><div class="gloss r"></div></div>${CHECK}`;
+    el.addEventListener('click',()=>tap(i));
+    el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();tap(i);} });
+    grid.appendChild(el);
+  });
+  layout(); paint();
+}
+function paint(animIdx=-1, animCount=0){
+  [...grid.children].forEach((el,i)=>{
+    const liq=el.querySelector('.liquid');
+    liq.innerHTML=tubes[i].map((c,j)=>{
+      const anim = (i===animIdx && j>=tubes[i].length-animCount) ? ' pop':'';
+      return `<div class="seg${anim}" style="--c:${COLORS[c]}"></div>`;
+    }).join('');
+    const done = tubes[i].length===CAP && tubes[i].every(x=>x===tubes[i][0]);
+    el.classList.toggle('done',done);
+    el.setAttribute('aria-label',`Flask ${i+1}, ${tubes[i].length} of 4 filled`);
+  });
+  document.getElementById('mv').textContent=moves;
+  document.getElementById('lvl').textContent=level;
+  document.getElementById('undo').disabled=!history.length;
+  document.getElementById('addTube').disabled=addLeft<=0;
+  document.getElementById('addLeft').textContent=addLeft;
+}
+
+/* ============================ interaction ============================ */
+function tap(i){
+  Audio_.init();
+  if(busy) return;
+  const el=grid.children[i];
+  if(selected===-1){
+    if(!tubes[i].length || isDone(tubes[i])){ Audio_.bad(); shake(el); return; }
+    selected=i; el.classList.add('raised'); Audio_.pick(); return;
+  }
+  if(selected===i){ el.classList.remove('raised'); selected=-1; Audio_.drop(); return; }
+  const amt=canPour(selected,i);
+  if(!amt){ Audio_.bad(); shake(el); grid.children[selected].classList.remove('raised'); selected=-1; return; }
+  const from=selected; selected=-1;
+  grid.children[from].classList.remove('raised');
+  doPour(from,i,amt);
+}
+function shake(el){ el.classList.add('nudge'); setTimeout(()=>el.classList.remove('nudge'),320); }
+
+async function doPour(a,b,amt){
+  busy=true;
+  history.push({tubes:tubes.map(t=>[...t]), moves});
+  const color=COLORS[tubes[a][tubes[a].length-1]];
+  await animate(a,b,color,amt);
+  for(let i=0;i<amt;i++) tubes[b].push(tubes[a].pop());
+  moves++;
+  paint(b,amt);
+  const wasDone=cleared.has(b);
+  if(!wasDone && tubes[b].length===CAP && tubes[b].every(x=>x===tubes[b][0])){ cleared.add(b); Audio_.done(); }
+  busy=false;
+  if(isWin()) setTimeout(winSequence,320);
+}
+
+function animate(a,b,color,amt){
+  return new Promise(res=>{
+    const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const src=grid.children[a], dst=grid.children[b];
+    const sr=src.getBoundingClientRect(), dr=dst.getBoundingClientRect();
+    if(reduce){ Audio_.pour(0); setTimeout(res,80); return; }
+
+    const clone=src.cloneNode(true);
+    clone.className='tube flying';
+    clone.style.cssText+=`left:${sr.left}px;top:${sr.top}px;width:${sr.width}px;height:${sr.height}px;transition:transform .28s cubic-bezier(.4,0,.2,1)`;
+    document.body.appendChild(clone);
+    src.style.visibility='hidden';
+
+    const left = sr.left < dr.left;
+    const tilt = left ? 62 : -62;
+    const dx = (dr.left + dr.width/2) - (sr.left + sr.width/2) + (left ? -dr.width*0.62 : dr.width*0.62);
+    const dy = (dr.top - sr.top) - sr.height*0.52;
+
+    requestAnimationFrame(()=>{ clone.style.transform=`translate(${dx}px,${dy}px) rotate(${tilt}deg)`; });
+
+    setTimeout(()=>{
+      // stream
+      const st=document.createElement('div');
+      st.className='stream'; st.style.setProperty('--c',color);
+      const filled=tubes[b].length;
+      const bodyTop=dr.top+dr.height*0.11, bodyH=dr.height*0.89;
+      const surfaceY=bodyTop+bodyH*(1-filled/CAP);
+      const topY=dr.top-dr.height*0.34;
+      st.style.left=(dr.left+dr.width/2-4.5)+'px';
+      st.style.top=topY+'px'; st.style.height='0px';
+      st.style.transition='height .12s linear';
+      document.body.appendChild(st);
+      requestAnimationFrame(()=>{ st.style.height=(surfaceY-topY)+'px'; });
+
+      const per = 150;
+      const cloneLiq=clone.querySelector('.liquid');
+      for(let i=0;i<amt;i++){
+        setTimeout(()=>{
+          Audio_.pour(i);
+          if(cloneLiq.lastElementChild) cloneLiq.removeChild(cloneLiq.lastElementChild);
+          const liq=dst.querySelector('.liquid');
+          const seg=document.createElement('div');
+          seg.className='seg pop'; seg.style.setProperty('--c',color);
+          liq.appendChild(seg);
+          splash(dr.left+dr.width/2, surfaceY - bodyH*(i/CAP), color);
+        }, i*per);
+      }
+      setTimeout(()=>{
+        st.style.transition='height .1s ease-in'; st.style.height='0px';
+        setTimeout(()=>st.remove(),140);
+        clone.style.transform='translate(0,0) rotate(0deg)';
+        setTimeout(()=>{ clone.remove(); src.style.visibility=''; res(); },260);
+      }, amt*per);
+    },290);
+  });
+}
+function splash(x,y,color){
+  for(let i=0;i<5;i++){
+    const d=document.createElement('div'); d.className='drop';
+    const s=3+Math.random()*4;
+    d.style.cssText=`left:${x}px;top:${y}px;width:${s}px;height:${s}px;background:${color};opacity:.9`;
+    document.body.appendChild(d);
+    const ax=(Math.random()-.5)*46, ay=-14-Math.random()*20;
+    d.animate([{transform:'translate(0,0)',opacity:.9},
+               {transform:`translate(${ax}px,${ay}px)`,opacity:.9,offset:.45},
+               {transform:`translate(${ax*1.5}px,${ay+34}px)`,opacity:0}],
+              {duration:420,easing:'ease-out'}).onfinish=()=>d.remove();
+  }
+}
+
+/* ============================ flow ============================ */
+function startLevel(n){
+  level=n; moves=0; history=[]; selected=-1; addLeft=1; cleared=new Set();
+  const {colors,empties}=levelConfig(n);
+  tubes=generate(colors,empties);
+  initial=tubes.map(t=>[...t]);
+  tubes.forEach((t,i)=>{ if(isDone(t)&&t.length) cleared.add(i); });
+  document.getElementById('sub').textContent = 'because I was bored';
+  build(); save();
+}
+function winSequence(){
+  Audio_.win(); confetti();
+  document.getElementById('ovTitle').textContent = 'Level clear!';
+  document.getElementById('ovText').textContent = `Level ${level} sorted in ${moves} moves.`;
+  document.getElementById('over').classList.add('on');
+  save(level+1);
+}
+function confetti(){
+  const cols=['#e0342f','#3a9ce8','#8cc63e','#ffc247','#a95ff0','#25c4b0'];
+  for(let i=0;i<70;i++){
+    const c=document.createElement('div'); c.className='confetti';
+    c.style.cssText=`left:${Math.random()*100}vw;top:-20px;background:${cols[i%cols.length]};border-radius:${Math.random()<.5?'2px':'50%'}`;
+    document.body.appendChild(c);
+    c.animate([{transform:`translateY(0) rotate(0deg)`,opacity:1},
+               {transform:`translateY(${innerHeight+60}px) rotate(${540+Math.random()*540}deg)`,opacity:.9}],
+              {duration:1800+Math.random()*1400,delay:Math.random()*500,easing:'cubic-bezier(.3,.6,.5,1)'})
+      .onfinish=()=>c.remove();
+  }
+}
+document.getElementById('next').onclick=()=>{
+  Audio_.init(); Audio_.pick();
+  document.getElementById('over').classList.remove('on');
+  startLevel(level+1);
+};
+document.getElementById('undo').onclick=()=>{
+  Audio_.init();
+  if(busy||!history.length) return;
+  const h=history.pop(); tubes=h.tubes; moves=h.moves;
+  if(selected>=0) grid.children[selected].classList.remove('raised');
+  selected=-1; cleared=new Set(); tubes.forEach((t,i)=>{ if(isDone(t)&&t.length) cleared.add(i); });
+  Audio_.undo(); paint();
+};
+document.getElementById('restart').onclick=()=>{
+  Audio_.init(); Audio_.drop();
+  if(busy) return;
+  tubes=initial.map(t=>[...t]);
+  moves=0; history=[]; selected=-1; addLeft=1;
+  cleared=new Set(); tubes.forEach((t,i)=>{ if(isDone(t)&&t.length) cleared.add(i); });
+  build();
+};
+document.getElementById('addTube').onclick=()=>{
+  Audio_.init();
+  if(busy||addLeft<=0) return;
+  history.push({tubes:tubes.map(t=>[...t]),moves});
+  tubes.push([]); addLeft--; selected=-1;
+  Audio_.tone(660,.18,'triangle',.14,990);
+  build();
+};
+addEventListener('resize',()=>{ if(tubes.length) layout(); });
+
+/* ---------- progress ---------- */
+async function save(next){
+  try{ await window.storage.set('flasksort:progress', JSON.stringify({level: next||level})); }catch(e){}
+}
+async function boot(){
+  let start=1;
+  try{ const r=await window.storage.get('flasksort:progress'); if(r) start=JSON.parse(r.value).level||1; }catch(e){}
+  startLevel(start);
+}
+boot();
+</script>
+</body>
+</html>
